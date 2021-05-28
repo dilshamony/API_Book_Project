@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import mixins, generics
 from rest_framework.parsers import JSONParser
 
 from .models import Book
@@ -9,11 +8,6 @@ from django.http import JsonResponse
 #___________________________________
 
 from .serializers import BookModelSerializer
-from rest_framework.views import APIView
-
-#___________________________________
-
-
 
 
 
@@ -64,70 +58,3 @@ def book_details(request,id):
 
 #                                      CLASS BASED VIEWS
 #=======================================================================================================================
-#LIST
-class BookListView(APIView):
-    def get(self,request):
-        books=Book.objects.all()
-        serializer=BookModelSerializer(books,many=True)
-        return JsonResponse(serializer.data,safe=False)
-#CREATE
-    def post(self,request):
-        serializer=BookModelSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        else:
-            return JsonResponse(serializer.data, status=400)
-
-#DETAILS
-class BookDetailView(APIView):
-    def get_object(self,id):
-        return Book.objects.get(id=id)
-    def get(self,request,id):
-        book=self.get_object(id)
-        serializer=BookModelSerializer(book)
-        return JsonResponse(serializer.data, status=201)
-#UPDATE
-    def put(self,request,id):
-        book=self.get_object(id)
-        serializer=BookModelSerializer(book,data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        else:
-            return JsonResponse(serializer.data, status=400)
-    def delete(self,request,id):
-        book=self.get_object(id)
-        book.delete()
-        return JsonResponse({"Message":"Deleted"})
-
-
-#                                      MIXIN CLASS VIEW
-#=======================================================================================================================
-#LIST
-class BookMixinView(mixins.ListModelMixin,
-                    mixins.CreateModelMixin,
-                    generics.GenericAPIView):
-    queryset=Book.objects.all()
-    serializer_class = BookModelSerializer
-    def get(self,request,*args,**kwargs):
-        return self.list(request,*args,**kwargs)
-    def post(self,request,*args,**kwargs):
-        return self.create(request,*args,**kwargs)
-
-#DETAILS
-class BookDetailMixinView(generics.GenericAPIView,
-                          mixins.RetrieveModelMixin,
-                          mixins.UpdateModelMixin,
-                          mixins.DestroyModelMixin):
-    queryset = Book.objects.all()
-    serializer_class = BookModelSerializer
-
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-#UPDATE
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-#DELETE
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
