@@ -32,3 +32,11 @@ class BookModelSerializer(ModelSerializer):
     class Meta:
         model=Book
         fields=["book_name","author","pages","price"]
+
+
+#Token Authentication
+#===================
+#LOGIN
+class LoginSerializer(serializers.Serializer):
+    username=serializers.CharField()
+    password=serializers.CharField()

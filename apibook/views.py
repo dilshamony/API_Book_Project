@@ -12,6 +12,16 @@ from rest_framework.views import APIView
 #___________________________________
 from rest_framework import mixins, generics
 
+#Authentication==>Session Authentication
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.permissions import IsAuthenticated,IsAdminUser
+
+#Authentication==>Token Authentication
+from .serializers import LoginSerializer
+from django.contrib.auth import authenticate,login
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+
 
 
 #                                      FUNCTION BASED VIEWS
@@ -59,6 +69,8 @@ def book_details(request,id):
         return JsonResponse({"Message":"Deleted"})
 
 
+
+
 #                                      CLASS BASED VIEWS
 #=======================================================================================================================
 #LIST
@@ -75,8 +87,10 @@ class BookListView(APIView):
             return JsonResponse(serializer.data, status=201)
         else:
             return JsonResponse(serializer.data, status=400)
-#DETAILS
+#DETAILS & SESSION AUTHENTICATION
 class BookDetailView(APIView):
+    authentication_classes = [TokenAuthentication]#[BasicAuthentication,SessionAuthentication]
+    permission_classes = [IsAuthenticated]#[IsAuthenticated,IsAdminUser]
     def get_object(self,id):
         return Book.objects.get(id=id)
     def get(self,request,id):
@@ -97,6 +111,26 @@ class BookDetailView(APIView):
         return JsonResponse({"Message":"Deleted"})
 
 
+#Token Authentication
+#LOGIN
+class LoginApi(APIView):
+    def post(self,request,*args,**kwargs):
+        serializer=LoginSerializer(data=request.data)
+        if serializer.is_valid():
+            username=serializer.validated_data.get("username")
+            password=serializer.validated_data.get("password")
+            user=authenticate(request,username=username,password=password)
+            if user:
+                login(request,user)
+                token,created=Token.objects.get_or_create(user=user)
+                return JsonResponse({"token":token.key})
+            else:
+                print("No User")
+                return JsonResponse({"Message":"Failed"})
+
+# "token": "0ac413853a645c6f1c3f603ecf77b042221634e4"
+
+
 #                                     MIXIN CLASSES
 #=======================================================================================================================
 #LIST
@@ -105,6 +139,8 @@ class BookMixinView(mixins.ListModelMixin,
                     generics.GenericAPIView):
     queryset=Book.objects.all()
     serializer_class = BookModelSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self,request,*args,**kwargs):
         return self.list( request, *args, **kwargs)
 #CREATE
@@ -117,6 +153,8 @@ class BookDetailMixinView(generics.GenericAPIView,
                           mixins.DestroyModelMixin):
     queryset = Book.objects.all()
     serializer_class = BookModelSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
         return self.retrieve(request,*args,**kwargs)
 #UPDATE
